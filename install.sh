@@ -831,9 +831,9 @@ install_file() {
       rpm -Uvh --oldpackage --replacepkgs "$2"
       exists dnf && PKGCMD=dnf || PKGCMD=yum
       if test "$version" = 'latest'; then
-        run_cmd "${PKGCMD} install -y puppet-agent && ${PKGCMD} upgrade -y puppet-agent"
+        run_cmd "${PKGCMD} install -y openvox-agent && ${PKGCMD} upgrade -y openvox-agent"
       else
-        run_cmd "${PKGCMD} install -y 'puppet-agent-${puppet_agent_version}'"
+        run_cmd "${PKGCMD} install -y 'openvox-agent-${puppet_agent_version}'"
       fi
       ;;
     "noarch.rpm")
@@ -854,9 +854,9 @@ install_file() {
 
       run_cmd "zypper install --no-confirm '$2'"
       if test "$version" = "latest"; then
-        run_cmd "zypper install --no-confirm 'puppet-agent'"
+        run_cmd "zypper install --no-confirm 'openvox-agent'"
       else
-        run_cmd "zypper install --no-confirm --oldpackage --no-recommends --no-confirm 'puppet-agent-${puppet_agent_version}'"
+        run_cmd "zypper install --no-confirm --oldpackage --no-recommends --no-confirm 'openvox-agent-${puppet_agent_version}'"
       fi
       ;;
     "deb")
@@ -882,16 +882,16 @@ install_file() {
       run_cmd 'apt-get update -y'
 
       if test "$version" = 'latest'; then
-        run_cmd "${frontend} apt-get install -y puppet-agent"
+        run_cmd "${frontend} apt-get install -y openvox-agent"
       else
-        run_cmd "${frontend} apt-get install -y 'puppet-agent=${puppet_agent_version}'"
+        run_cmd "${frontend} apt-get install -y 'openvox-agent=${puppet_agent_version}'"
       fi
       ;;
     "dmg" )
-      info "installing puppet dmg with hdiutil and installer"
+      info "installing openvox dmg with hdiutil and installer"
       mountpoint="$(mktemp -d -t $(random_hexdump))"
       /usr/bin/hdiutil attach "${download_filename?}" -nobrowse -readonly -mountpoint "${mountpoint?}"
-      /usr/sbin/installer -pkg ${mountpoint?}/puppet-agent-*-installer.pkg -target /
+      /usr/sbin/installer -pkg ${mountpoint?}/openvox-agent-*-installer.pkg -target /
       /usr/bin/hdiutil detach "${mountpoint?}"
       rm -f $download_filename
       ;;
@@ -982,9 +982,9 @@ case $platform in
     info "Mac platform! Lets get you a DMG..."
     filetype="dmg"
     if test "$version" = "latest"; then
-      filename="puppet-agent-latest.dmg"
+      filename="openvox-agent-latest.dmg"
     else
-      filename="puppet-agent-${version}-1.osx${platform_version}.dmg"
+      filename="openvox-agent-${version}-1.osx${platform_version}.dmg"
     fi
 
     arch="x86_64"
