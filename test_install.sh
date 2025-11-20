@@ -20,10 +20,9 @@ while [[ "$#" -gt 0 ]]; do
       -v|--version) EXPECTED_VERSION="$2"; shift ;;
       -c|--collection) EXPECTED_COLLECTION="$2"; shift;
         case $EXPECTED_COLLECTION in
-          puppet|puppet-nightly) EXPECTED_VERSION="7." ;;
-          puppet6|puppet6-nightly) EXPECTED_VERSION="6." ;;
-          puppet7|puppet7-nightly) EXPECTED_VERSION="7." ;;
-          puppet8|puppet8-nightly) EXPECTED_VERSION="8." ;;
+          openvox|openvox-nightly) EXPECTED_VERSION="8." ;;
+          openvox7|openvox7-nightly) EXPECTED_VERSION="7." ;;
+          openvox8|openvox8-nightly) EXPECTED_VERSION="8." ;;
         esac
         ;;
       --cleanup) EXPECT_CLEANUP=true; shift ;;
@@ -33,7 +32,6 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 bash install.sh "${INSTALL_OPTIONS[@]}"
-# curl -sSL https://raw.githubusercontent.com/puppetlabs/install-puppet/main/install.sh | bash -s -- "${INSTALL_OPTIONS[@]}"
 
 if [ -n "$EXPECTED_VERSION" ]; then
   if ! exists $PUPPET_BIN; then

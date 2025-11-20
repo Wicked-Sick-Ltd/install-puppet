@@ -10,10 +10,10 @@ function usage()
 
    optional arguments:
      -h, --help                   show this help message and exit
-     -v, --version VERSION        install a specific puppet-agent version
-     -c, --collection COLLECTION  install a specific puppet-agent collection (e.g. puppet7)
+     -v, --version VERSION        install a specific openvox-agent version
+     -c, --collection COLLECTION  install a specific openvox-agent collection (openvox7 or openvox8)
      -n, --noop                   do a dry run, do not change any files
-     --cleanup                    remove the puppetlabs repository after installation finishes
+     --cleanup                    remove the openvox repository after installation finishes
 
 HEREDOC
 }
@@ -21,14 +21,12 @@ HEREDOC
 while [[ "$#" -gt 0 ]]; do
   case $1 in
       -v|--version) PT_version="$2"; shift ;
-         if beginswith "6." "$PT_version"; then
-           PT_collection="puppet6"
-         elif beginswith "7." "$PT_version"; then
-           PT_collection="puppet7"
+         if beginswith "7." "$PT_version"; then
+           PT_collection="openvox7"
          elif beginswith "8." "$PT_version"; then
-           PT_collection="puppet8"
+           PT_collection="openvox8"
          else
-           PT_collection="puppet"
+           PT_collection="openvox8"
          fi ;;
       -c|--collection) PT_collection="$2"; shift ;;
       --cleanup) PT_cleanup=true; shift ;;
@@ -71,11 +69,11 @@ success() {
 determine_command_for_facter_4() {
   puppet_version="$(puppet --version)"
 
-  if (( ${puppet_version%%.*} == 6 )); then
-    # puppet 6 with facter 4
+  if (( ${puppet_version%%.*} == 7 )); then
+    # puppet 7 with facter 4
     facts_command=(facter --json --show-legacy)
   else
-    # puppet 7 with facter 4
+    # puppet 8 with facter 4
     facts_command=(puppet facts show --show-legacy --render-as json)
   fi
 }
@@ -239,9 +237,9 @@ family="$(munge_name "$family")"
 
 set -e
 
-# Install puppet-agent as a task
+# Install openvox-agent as a task
 #
-# From https://github.com/petems/puppet-install-shell/blob/master/install_puppet_5_agent.sh
+# Based on https://github.com/petems/puppet-install-shell/blob/master/install_puppet_5_agent.sh
 
 # Timestamp
 now () {
@@ -279,24 +277,24 @@ exists() {
 
 # Check whether the apt config file has been modified, warning and exiting early if it has
 assert_unmodified_apt_config() {
-  puppet_list=/etc/apt/sources.list.d/puppet.list
-  puppet7_list=/etc/apt/sources.list.d/puppet7.list
-  puppet8_list=/etc/apt/sources.list.d/puppet8.list
+  openvox_list=/etc/apt/sources.list.d/openvox.list
+  openvox7_list=/etc/apt/sources.list.d/openvox7.list
+  openvox8_list=/etc/apt/sources.list.d/openvox8.list
 
-  if [[ -f $puppet_list ]]; then
-    list_file=puppet_list
-  elif [[ -f $puppet7_list ]]; then
-    list_file=puppet7_list
-  elif [[ -f $puppet8_list ]]; then
-    list_file=puppet8_list
+  if [[ -f $openvox_list ]]; then
+    list_file=openvox_list
+  elif [[ -f $openvox7_list ]]; then
+    list_file=openvox7_list
+  elif [[ -f $openvox8_list ]]; then
+    list_file=openvox8_list
   fi
 
-  # If puppet.list exists, get its md5sum on disk and its md5sum from the puppet-release package
+  # If openvox.list exists, get its md5sum on disk and its md5sum from the openvox-release package
   if [[ -n $list_file ]]; then
     # For md5sum, the checksum is the first word
     file_md5=($(md5sum "$list_file"))
     # For dpkg-query with this output format, the sum is the second word
-    package_md5=($(dpkg-query -W -f='${Conffiles}\n' 'puppet-release' | grep -F "$list_file"))
+    package_md5=($(dpkg-query -W -f='${Conffiles}\n' 'openvox-release' | grep -F "$list_file"))
 
     # If the $package_md5 array is set, and the md5sum on disk doesn't match the md5sum from dpkg-query, it has been modified
     if [[ $package_md5 && ${file_md5[0]} != ${package_md5[1]} ]]; then
@@ -357,42 +355,26 @@ if [ -n "$PT_collection" ]; then
 
   collection=$PT_collection
 else
-  collection='puppet'
+  collection='openvox8'
 fi
 
 if [ -n "$PT_yum_source" ]; then
   yum_source=$PT_yum_source
 else
-  if [[ "$collection" == "puppetcore"* ]]; then
-    yum_source='https://yum-puppetcore.puppet.com/public'
-    if [ -z "$password" ]; then
-      echo "A password parameter is required to install from ${yum_source}"
-      exit 1
-    fi
+  if [ "$nightly" = true ]; then
+    yum_source='http://nightlies.voxpupuli.org/yum'
   else
-    if [ "$nightly" = true ]; then
-      yum_source='http://nightlies.puppet.com/yum'
-    else
-      yum_source='http://yum.puppet.com'
-    fi
+    yum_source='http://yum.voxpupuli.org'
   fi
 fi
 
 if [ -n "$PT_apt_source" ]; then
   apt_source=$PT_apt_source
 else
-  if [[ "$collection" == "puppetcore"* ]]; then
-    apt_source='https://apt-puppetcore.puppet.com/public'
-    if [ -z "$password" ]; then
-        echo "A password parameter is required to install from ${apt_source}"
-        exit 1
-    fi
+  if [ "$nightly" = true ]; then
+    apt_source='http://nightlies.voxpupuli.org/apt'
   else
-    if [ "$nightly" = true ]; then
-      apt_source='http://nightlies.puppet.com/apt'
-    else
-      apt_source='http://apt.puppet.com'
-    fi
+    apt_source='http://apt.voxpupuli.org'
   fi
 fi
 
@@ -400,9 +382,9 @@ if [ -n "$PT_mac_source" ]; then
   mac_source=$PT_mac_source
 else
   if [ "$nightly" = true ]; then
-    mac_source='http://nightlies.puppet.com/downloads'
+    mac_source='http://nightlies.voxpupuli.org/downloads'
   else
-    mac_source='http://downloads.puppet.com'
+    mac_source='http://downloads.voxpupuli.org'
   fi
 fi
 
@@ -412,7 +394,7 @@ else
   retry=5
 fi
 
-# Track to handle puppet5 to puppet6
+# Track to handle puppet version upgrades
 if [ -f /opt/puppetlabs/puppet/VERSION ]; then
   installed_version=`cat /opt/puppetlabs/puppet/VERSION`
 elif type -p puppet >/dev/null; then
@@ -524,7 +506,7 @@ if true; then
     esac
   fi
 else
-  echo "This module depends on the puppetlabs-facts module"
+  echo "This module depends on the facts module"
   exit 1
 fi
 
@@ -826,16 +808,16 @@ do_download() {
 install_file() {
   case "$1" in
     "rpm")
-      info "installing puppetlabs yum repo with rpm..."
-      if test -f "/etc/yum.repos.d/puppetlabs-pc1.repo"; then
-        info "existing puppetlabs yum repo found, moving to old location"
-        mv /etc/yum.repos.d/puppetlabs-pc1.repo /etc/yum.repos.d/puppetlabs-pc1.repo.old
+      info "installing openvox yum repo with rpm..."
+      if test -f "/etc/yum.repos.d/openvox-pc1.repo"; then
+        info "existing openvox yum repo found, moving to old location"
+        mv /etc/yum.repos.d/openvox-pc1.repo /etc/yum.repos.d/openvox-pc1.repo.old
       fi
 
       if test "x$installed_version" != "xuninstalled"; then
         info "Version ${installed_version} detected..."
         major=$(echo $installed_version | cut -d. -f1)
-        pkg="puppet${major}-release"
+        pkg="openvox${major}-release"
 
         if echo $2 | grep $pkg; then
           info "No collection upgrade detected"
@@ -845,16 +827,8 @@ install_file() {
         fi
       fi
 
-      repo="/etc/yum.repos.d/${collection/core/}-release.repo"
+      repo="/etc/yum.repos.d/${collection}-release.repo"
       rpm -Uvh --oldpackage --replacepkgs "$2"
-      if [[ "$collection" =~ core ]]; then
-        if [[ -n $username ]]; then
-          sed -i "s/^#\?username=.*/username=${username}/" "${repo}"
-        fi
-        if [[ -n $password ]]; then
-          sed -i "s/^#\?password=.*/password=${password}/" "${repo}"
-        fi
-      fi
       exists dnf && PKGCMD=dnf || PKGCMD=yum
       if test "$version" = 'latest'; then
         run_cmd "${PKGCMD} install -y puppet-agent && ${PKGCMD} upgrade -y puppet-agent"
@@ -863,12 +837,12 @@ install_file() {
       fi
       ;;
     "noarch.rpm")
-      info "installing puppetlabs yum repo with zypper..."
+      info "installing openvox yum repo with zypper..."
 
       if test "x$installed_version" != "xuninstalled"; then
         info "Version ${installed_version} detected..."
         major=$(echo $installed_version | cut -d. -f1)
-        pkg="puppet${major}-release"
+        pkg="openvox${major}-release"
 
         if echo $2 | grep $pkg; then
           info "No collection upgrade detected"
@@ -879,14 +853,6 @@ install_file() {
       fi
 
       run_cmd "zypper install --no-confirm '$2'"
-      if [[ "$collection" =~ core ]]; then
-        if [[ -n $username ]]; then
-          sed -i "s/^username=.*/username=${username}/" "/etc/zypp/credentials.d/PuppetcoreCreds"
-        fi
-        if [[ -n $password ]]; then
-          sed -i "s/^password=.*/password=${password}/" "/etc/zypp/credentials.d/PuppetcoreCreds"
-        fi
-      fi
       if test "$version" = "latest"; then
         run_cmd "zypper install --no-confirm 'puppet-agent'"
       else
@@ -894,12 +860,12 @@ install_file() {
       fi
       ;;
     "deb")
-      info "Installing puppetlabs apt repo with dpkg..."
+      info "Installing openvox apt repo with dpkg..."
 
       if test "x$installed_version" != "xuninstalled"; then
         info "Version ${installed_version} detected..."
         major=$(echo $installed_version | cut -d. -f1)
-        pkg="puppet${major}-release"
+        pkg="openvox${major}-release"
 
         if echo $2 | grep $pkg; then
           info "No collection upgrade detected"
@@ -912,28 +878,17 @@ install_file() {
       assert_unmodified_apt_config
 
       dpkg -i --force-confmiss "$2"
-      if [[ "$collection" =~ core ]]; then
-        auth_conf="/etc/apt/auth.conf.d/apt-puppetcore-puppet.conf"
-        sed -i "/^#?login/d" "${auth_conf}"
-        echo "login ${username}" >> "${auth_conf}"
-        sed -i "/^#?password/d" "${auth_conf}"
-        echo "password ${password}" >> "${auth_conf}"
-      fi
       frontend="DEBIAN_FRONTEND=noninteractive"
       run_cmd 'apt-get update -y'
 
       if test "$version" = 'latest'; then
         run_cmd "${frontend} apt-get install -y puppet-agent"
       else
-        if test "x$deb_codename" != "x"; then
-          run_cmd "${frontend} apt-get install -y 'puppet-agent=${puppet_agent_version}-1${deb_codename}'"
-        else
-          run_cmd "${frontend} apt-get install -y 'puppet-agent=${puppet_agent_version}'"
-        fi
+        run_cmd "${frontend} apt-get install -y 'puppet-agent=${puppet_agent_version}'"
       fi
       ;;
     "dmg" )
-      info "installing puppetlabs dmg with hdiutil and installer"
+      info "installing puppet dmg with hdiutil and installer"
       mountpoint="$(mktemp -d -t $(random_hexdump))"
       /usr/bin/hdiutil attach "${download_filename?}" -nobrowse -readonly -mountpoint "${mountpoint?}"
       /usr/sbin/installer -pkg ${mountpoint?}/puppet-agent-*-installer.pkg -target /
@@ -957,31 +912,22 @@ case $platform in
     info "SLES platform! Lets get you an RPM..."
 
     if [[ $PT__noop != true ]]; then
-      if [[ "$collection" =~ core ]]; then
-        for key in "puppet"; do
-          gpg_key="${tmp_dir}/RPM-GPG-KEY-${key}"
-          do_download "https://yum-puppetcore.puppet.com/public/RPM-GPG-KEY-${key}" "$gpg_key"
-          rpm --import "$gpg_key"
-          rm -f "$gpg_key"
-        done
-      else
-        for key in "puppet"; do
-          gpg_key="${tmp_dir}/RPM-GPG-KEY-${key}"
-          do_download "https://yum.puppet.com/RPM-GPG-KEY-${key}" "$gpg_key"
-          rpm --import "$gpg_key"
-          rm -f "$gpg_key"
-        done
-      fi
+      for key in "openvox"; do
+        gpg_key="${tmp_dir}/RPM-GPG-KEY-${key}"
+        do_download "https://yum.voxpupuli.org/RPM-GPG-KEY-${key}" "$gpg_key"
+        rpm --import "$gpg_key"
+        rm -f "$gpg_key"
+      done
     fi
 
     filetype="noarch.rpm"
-    filename="${collection/core/}-release-sles-${platform_version}.noarch.rpm"
+    filename="${collection}-release-sles-${platform_version}.noarch.rpm"
     download_url="${yum_source}/${filename}"
     ;;
   "el")
     info "Red hat like platform! Lets get you an RPM..."
     filetype="rpm"
-    filename="${collection/core/}-release-el-${platform_version}.noarch.rpm"
+    filename="${collection}-release-el-${platform_version}.noarch.rpm"
     download_url="${yum_source}/${filename}"
     ;;
   "Amzn"|"Amazon Linux")
@@ -995,55 +941,41 @@ case $platform in
     elif (( platform_version == 2 || platform_version >= 2023 )); then
       platform_package="amazon"
     fi
-    filename="${collection/core/}-release-${platform_package}-${platform_version}.noarch.rpm"
+    filename="${collection}-release-${platform_package}-${platform_version}.noarch.rpm"
     download_url="${yum_source}/${filename}"
     ;;
   "Fedora")
     info "Fedora platform! Lets get the RPM..."
     filetype="rpm"
-    filename="${collection/core/}-release-fedora-${platform_version}.noarch.rpm"
+    filename="${collection}-release-fedora-${platform_version}.noarch.rpm"
     download_url="${yum_source}/${filename}"
     ;;
   "Debian")
     info "Debian platform! Lets get you a DEB..."
-    case $major_version in
-      "10") deb_codename="buster";;
-      "11") deb_codename="bullseye";;
-      "12") deb_codename="bookworm";;
-    esac
     filetype="deb"
-    filename="${collection/core/}-release-${deb_codename}.deb"
+    filename="${collection}-release-debian${major_version}.deb"
     download_url="${apt_source}/${filename}"
     ;;
   "Linuxmint"|"LinuxMint")
     info "Mint platform! Lets get you a DEB..."
+    # Map Mint versions to their Ubuntu base
     case $major_version in
-      "3")  deb_codename="stretch";;
-      "4")  deb_codename="buster";;
-      "5")  deb_codename="bullseye";;
-      "6")  deb_codename="bookworm";;
-      "21") deb_codename="jammy";;
-      "20") deb_codename="focal";;
-      "19") deb_codename="bionic";;
-      "18") deb_codename="xenial";;
-      "17") deb_codename="trusty";;
+      "21") ubuntu_version="22.04";;
+      "20") ubuntu_version="20.04";;
+      "19") ubuntu_version="18.04";;
+      *)
+        critical "Unsupported Linux Mint version: $major_version"
+        exit 1
+        ;;
     esac
     filetype="deb"
-    filename="${collection/core/}-release-${deb_codename}.deb"
+    filename="${collection}-release-ubuntu${ubuntu_version}.deb"
     download_url="${apt_source}/${filename}"
     ;;
   "Ubuntu")
     info "Ubuntu platform! Lets get you a DEB..."
-    case $platform_version in
-      "16.10") deb_codename="yakkety";;
-      "17.04") deb_codename="zesty";;
-      "18.04") deb_codename="bionic";;
-      "20.04") deb_codename="focal";;
-      "22.04") deb_codename="jammy";;
-      "24.04") deb_codename="noble";;
-    esac
     filetype="deb"
-    filename="${collection/core/}-release-${deb_codename}.deb"
+    filename="${collection}-release-ubuntu${platform_version}.deb"
     download_url="${apt_source}/${filename}"
     ;;
   "mac_os_x")
@@ -1095,10 +1027,10 @@ if [[ $PT__noop != true ]]; then
     info "Cleanup requested, removing ${collection}-release repository..."
     case $platform in
       SLES|el|Amzn|"Amazon Linux"|Fedora)
-        rpm -e --allmatches "${collection}"-release
+        rpm -e --allmatches "${collection}-release"
         ;;
       Debian|LinuxMint|Linuxmint|Ubuntu)
-        apt-get purge "${collection}"-release -y
+        apt-get purge "${collection}-release" -y
         ;;
     esac
   fi

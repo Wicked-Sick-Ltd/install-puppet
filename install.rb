@@ -1,12 +1,12 @@
 # This script generates an install.sh file which can be used to install
-# puppet-agent on supported FOSS POSIX platforms.
+# openvox-agent on supported FOSS POSIX platforms.
 #
-# The script leverages tasks from the puppet_agent and facts modules, and
+# The script leverages tasks from the openvox_agent and facts modules, and
 # attempts to change as few things as possible.
 
 # we just need the variables from here
 facts_script = `sed '/munge_name "$family"/q' < modules/facts/tasks/bash.sh`
-install_script = File.read('modules/puppet_agent/tasks/install_shell.sh')
+install_script = File.read('modules/openvox_agent/tasks/install_shell.sh')
   .sub('[ -f "$PT__installdir/facts/tasks/bash.sh" ]', 'true')
   .sub('$(bash $PT__installdir/facts/tasks/bash.sh "platform")', '$ID')
   .sub('$(bash $PT__installdir/facts/tasks/bash.sh "release")', '$full')
@@ -24,10 +24,10 @@ function usage()
 
    optional arguments:
      -h, --help                   show this help message and exit
-     -v, --version VERSION        install a specific puppet-agent version
-     -c, --collection COLLECTION  install a specific puppet-agent collection (e.g. puppet7)
+     -v, --version VERSION        install a specific openvox-agent version
+     -c, --collection COLLECTION  install a specific openvox-agent collection (openvox7 or openvox8)
      -n, --noop                   do a dry run, do not change any files
-     --cleanup                    remove the puppetlabs repository after installation finishes
+     --cleanup                    remove the openvox repository after installation finishes
 
 HEREDOC
 }
@@ -35,14 +35,12 @@ HEREDOC
 while [[ "$#" -gt 0 ]]; do
   case $1 in
       -v|--version) PT_version="$2"; shift ;
-         if beginswith "6." "$PT_version"; then
-           PT_collection="puppet6"
-         elif beginswith "7." "$PT_version"; then
-           PT_collection="puppet7"
+         if beginswith "7." "$PT_version"; then
+           PT_collection="openvox7"
          elif beginswith "8." "$PT_version"; then
-           PT_collection="puppet8"
+           PT_collection="openvox8"
          else
-           PT_collection="puppet"
+           PT_collection="openvox8"
          fi ;;
       -c|--collection) PT_collection="$2"; shift ;;
       --cleanup) PT_cleanup=true; shift ;;
@@ -64,10 +62,10 @@ if [[ $PT__noop != true ]]; then
     info "Cleanup requested, removing ${collection}-release repository..."
     case $platform in
       SLES|el|Amzn|"Amazon Linux"|Fedora)
-        rpm -e --allmatches "${collection}"-release
+        rpm -e --allmatches "${collection}-release"
         ;;
       Debian|LinuxMint|Linuxmint|Ubuntu)
-        apt-get purge "${collection}"-release -y
+        apt-get purge "${collection}-release" -y
         ;;
     esac
   fi
