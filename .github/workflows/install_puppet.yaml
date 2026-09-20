@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   install-openvox:
     name: ${{ matrix.collection }} / ${{ matrix.os.name }}
