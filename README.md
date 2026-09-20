@@ -83,3 +83,15 @@ shellcheck install.sh
 ## License
 
 This project is licensed under the Apache 2.0 License - see the LICENSE file for details
+
+<!-- repository-guidance:begin -->
+## Contributing and agent guidance
+
+- [Contributor guide](CONTRIBUTING.md): development workflow and validation.
+- [Agent instructions](AGENTS.md): shared guidance for Codex and other coding agents.
+- [Security policy](SECURITY.md): private vulnerability reporting.
+
+## Repository license
+
+Existing upstream license terms and notices remain in force; see [LICENSE](LICENSE).
+<!-- repository-guidance:end -->
